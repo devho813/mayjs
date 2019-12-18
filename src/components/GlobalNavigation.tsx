@@ -6,8 +6,8 @@ function GlobalNavigation() {
   return (
     <NavWrapper>
       <NavList>
-        <NavItem><Link to="/">WEBGL 예제</Link></NavItem>
-        <NavItem><Link to="/mayjs">MAY.JS 캐릭터</Link></NavItem>
+        <NavItem><Link to="/">MAY.JS 캐릭터</Link></NavItem>
+        <NavItem><Link to="/mayjs-character2">MAY.JS 캐릭터2</Link></NavItem>
         <NavItem><Link to="/mayjs-game">MAY.JS 게임</Link></NavItem>
       </NavList>
     </NavWrapper>
