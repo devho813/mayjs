@@ -1,5 +1,5 @@
-import React from "react";
-import { Link } from "react-router-dom";
+import React from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 
 function GlobalNavigation() {
@@ -16,12 +16,20 @@ function GlobalNavigation() {
 
 const NavItem = styled.li`
   display: inline-block;
-  margin: 20px 50px;
+  margin: 20px 40px;
 
   & > a {
     color: white;
     font-size: 20px;
     text-decoration: none;
+
+    @media (max-width: 1200px){
+      font-size: 16px;
+    }
+  }
+
+  @media (max-width: 1050px){
+    margin: 20px;
   }
 `;
 
@@ -36,8 +44,10 @@ const NavList = styled.ul`
 
 const NavWrapper = styled.div`
   position: fixed;
-  width: 100vw;
+  width: 50vw;
   top: 0;
+  left: 50%;
+  transform: translateX(-50%);
 
   &:hover{
     ${NavList}{
