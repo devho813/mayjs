@@ -88,6 +88,7 @@ function MayjsGame() {
       window.removeEventListener('resize', onWindowResize, false);
       window.removeEventListener('keydown', onKeyDown, false);
       window.removeEventListener('keyup', onKeyUp, false);
+      document.removeEventListener('pointerlockchange', lockChange, false);
 
       if (requestFrameID.current) window.cancelAnimationFrame(requestFrameID.current);
     };
@@ -350,7 +351,9 @@ function MayjsGame() {
       if (gameOver.current || gameWin.current) {
         window.location.reload();
       }
+      
       controls.current.enabled = false;
+      setGameStartState(false);
     }
   }, []);
 
@@ -544,7 +547,7 @@ function MayjsGame() {
       <Blocker id="blocker">
         {!gameStartState && (
           <ReadyAlert>
-            <h1>마우스를 클릭하여 게임이 시작됩니다.</h1>
+            <h1>마우스를 클릭하여 게임을 시작하세요.</h1>
             <h3>W, A, S, D키 또는 방향키로 이동할 수 있습니다.</h3>
           </ReadyAlert>
         )}
