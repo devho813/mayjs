@@ -163,7 +163,7 @@ function MayjsCharacter2() {
     const loader = new FBXLoader();
 
     // MONSTER_EGGPLANT_01
-    loader.load(`${require('../static/assets/models/monster_eggplant_01_test.FBX')}`, function (model: THREE.Group) {
+    loader.load(`${require('../static/assets/models/monster_eggplant_01.FBX')}`, function (model: THREE.Group) {
       model.traverse(function(childMesh) {
         if (childMesh instanceof THREE.Mesh) {
           childMesh.material = new THREE.MeshPhongMaterial({

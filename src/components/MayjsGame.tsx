@@ -17,12 +17,10 @@ function loadTexture() {
   const CUBE_TEXTURE = new THREE.TextureLoader().load(`${require('../static/assets/textures/grasslight-big.jpg')}`);
   const WALL_TEXTURE = new THREE.TextureLoader().load(`${require('../static/assets/textures/crate.gif')}`);
   const DOOR_TEXTURE = new THREE.TextureLoader().load(`${require('../static/assets/textures/open_door.png')}`);
-  const MONSTER_FRUIT_TEXTURE = [
-    new THREE.TextureLoader().load(`${require('../static/assets/textures/monster_fruit_01_albedo.png')}`),
-    new THREE.TextureLoader().load(`${require('../static/assets/textures/monster_fruit_02_albedo.png')}`),
-  ];
+  const MONSTER_EGGPLANT_TEXTURE = new THREE.TextureLoader().load(`${require('../static/assets/textures/monster_eggplant_01_albedo.png')}`);
+  const MONSTER_FRUIT_TEXTURE = new THREE.TextureLoader().load(`${require('../static/assets/textures/monster_fruit_01_albedo.png')}`);
 
-  return { GROUND_TEXTURE, CUBE_TEXTURE, WALL_TEXTURE, DOOR_TEXTURE, MONSTER_FRUIT_TEXTURE };
+  return { GROUND_TEXTURE, CUBE_TEXTURE, WALL_TEXTURE, DOOR_TEXTURE, MONSTER_EGGPLANT_TEXTURE, MONSTER_FRUIT_TEXTURE };
 }
 
 function MayjsGame() {
@@ -62,9 +60,10 @@ function MayjsGame() {
   const goalDoor = useRef<THREE.Mesh>();
   const monsters = useRef<THREE.Group[]>([]);
   const monster_length = useRef(2);
-  const MONSTERSCALE = useRef([0.2, 0.25]);
+  const MONSTERSCALE = useRef([0.13, 0.23]); // eggplant, fruit
+  const MONSTERPOSITION = useRef([-150, 150]); // eggplant, fruit
   const monsterVelocity = useRef([new THREE.Vector3(), new THREE.Vector3()]);
-  const MONSETERSPEED = useRef([280.0, 280.0]);
+  const MONSETERSPEED = useRef([290.0, 290.0]);
   const PLAYERCOLLISIONDISTANCE = useRef(5); // 플레이어 충돌 거리
   const MONSTERCOLLISIONDISTANCE = useRef(CUBEWIDTH.current / 2); // 몬스터 충돌 거리
   const CATCHOFFSET = useRef(CUBEWIDTH.current); // 몬스터와의 거리
@@ -88,6 +87,7 @@ function MayjsGame() {
       window.removeEventListener('resize', onWindowResize, false);
       window.removeEventListener('keydown', onKeyDown, false);
       window.removeEventListener('keyup', onKeyUp, false);
+      document.removeEventListener('click', onClickPointerLock, false);
       document.removeEventListener('pointerlockchange', lockChange, false);
 
       if (requestFrameID.current) window.cancelAnimationFrame(requestFrameID.current);
@@ -262,12 +262,13 @@ function MayjsGame() {
   const createMonsters = useCallback(() => {
     const loader = new FBXLoader();
 
-    for (let i = 0; i < 2; i++) {
-      loader.load(`${require(`../static/assets/models/monster_fruit_0${i + 1}.FBX`)}`, function(model: THREE.Group) {
+    for (let i = 0; i < monster_length.current; i++) {
+      // i === 0 -> eggplant, i === 1 -> fruit
+      loader.load(`${require(`../static/assets/models/monster_${i === 0 ? 'eggplant' : 'fruit'}_01.FBX`)}`, function(model: THREE.Group) {
         model.traverse(function(childMesh) {
           if (childMesh instanceof THREE.Mesh) {
             childMesh.material = new THREE.MeshPhongMaterial({
-              map: texture.current.MONSTER_FRUIT_TEXTURE[i],
+              map: i === 0 ? texture.current.MONSTER_EGGPLANT_TEXTURE : texture.current.MONSTER_FRUIT_TEXTURE
             });
             childMesh.castShadow = true;
             childMesh.receiveShadow = true;
@@ -275,7 +276,7 @@ function MayjsGame() {
         });
 
         model.scale.set(MONSTERSCALE.current[i], MONSTERSCALE.current[i], MONSTERSCALE.current[i]);
-        model.position.set(i % 2 === 0 ? 150 : -150, 1, i % 2 === 0 ? 150 : -150);
+        model.position.set(MONSTERPOSITION.current[i], 1, MONSTERPOSITION.current[i]);
         model.name = `monster_${i}`;
         scene.current.add(model);
 
@@ -285,61 +286,14 @@ function MayjsGame() {
     }
   }, []);
 
-  const onKeyDown = useCallback((event: KeyboardEvent) => {
-    switch (event.keyCode) {
-      case 38: // up
-      case 87: // w
-        moveState.current.moveForward = true;
-        break;
-
-      case 37: // left
-      case 65: // a
-        moveState.current.moveLeft = true;
-        break;
-
-      case 40: // down
-      case 83: // s
-        moveState.current.moveBackward = true;
-        break;
-
-      case 39: // right
-      case 68: // d
-        moveState.current.moveRight = true;
-        break;
-    }
-  }, []);
-
-  // A key has been released
-  const onKeyUp = useCallback((event: KeyboardEvent) => {
-    switch (event.keyCode) {
-      case 38: // up
-      case 87: // w
-        moveState.current.moveForward = false;
-        break;
-
-      case 37: // left
-      case 65: // a
-        moveState.current.moveLeft = false;
-        break;
-
-      case 40: // down
-      case 83: // s
-        moveState.current.moveBackward = false;
-        break;
-
-      case 39: // right
-      case 68: // d
-        moveState.current.moveRight = false;
-        break;
-    }
-  }, []);
-
   const getPointerLock = useCallback(() => {
-    document.onclick = function() {
-      container.current?.requestPointerLock();
-    };
+    document.addEventListener('click', onClickPointerLock, false);
     document.addEventListener('pointerlockchange', lockChange, false);
   }, []);
+
+  const onClickPointerLock = useCallback(() => {
+    container.current?.requestPointerLock();
+  }, [])
 
   const lockChange = useCallback((event: Event) => {
     // Turn on controls
@@ -527,6 +481,55 @@ function MayjsGame() {
 
   const render = useCallback(() => {
     renderer.current.render(scene.current, camera.current);
+  }, []);
+
+  const onKeyDown = useCallback((event: KeyboardEvent) => {
+    switch (event.keyCode) {
+      case 38: // up
+      case 87: // w
+        moveState.current.moveForward = true;
+        break;
+
+      case 37: // left
+      case 65: // a
+        moveState.current.moveLeft = true;
+        break;
+
+      case 40: // down
+      case 83: // s
+        moveState.current.moveBackward = true;
+        break;
+
+      case 39: // right
+      case 68: // d
+        moveState.current.moveRight = true;
+        break;
+    }
+  }, []);
+
+  // A key has been released
+  const onKeyUp = useCallback((event: KeyboardEvent) => {
+    switch (event.keyCode) {
+      case 38: // up
+      case 87: // w
+        moveState.current.moveForward = false;
+        break;
+
+      case 37: // left
+      case 65: // a
+        moveState.current.moveLeft = false;
+        break;
+
+      case 40: // down
+      case 83: // s
+        moveState.current.moveBackward = false;
+        break;
+
+      case 39: // right
+      case 68: // d
+        moveState.current.moveRight = false;
+        break;
+    }
   }, []);
 
   const onWindowResize = useCallback(() => {
