@@ -6,8 +6,8 @@ import MayjsGame from "./MayjsGame";
 
 export default () => (
   <Switch>
-    <Route exact path="/" component={MayjsCharacter} />
+    <Route exact path="/" component={MayjsGame} />
+    <Route exact path="/mayjs-character" component={MayjsCharacter} />
     <Route exact path="/mayjs-character2" component={MayjsCharacter2} />
-    <Route exact path="/mayjs-game" component={MayjsGame} />
   </Switch>
 );
