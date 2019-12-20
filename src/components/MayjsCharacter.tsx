@@ -69,19 +69,19 @@ function MayjsCharacter() {
     scene.current.background = new THREE.Color(0x050505);
 
     // 빛
-    spotLight.current.position.set(105, 150, 180);
+    spotLight.current.position.set(-10, 200, 160);
     spotLight.current.angle = Math.PI / 6;
-    spotLight.current.penumbra = 0.2;
-    spotLight.current.decay = 2;
-    spotLight.current.distance = 2000;
+    spotLight.current.penumbra = 0.3;
+    // spotLight.current.decay = 2;
+    spotLight.current.distance = 500;
 
     spotLight.current.castShadow = true;
-    spotLight.current.shadow.mapSize.width = 1024;
-    spotLight.current.shadow.mapSize.height = 1024;
+    // spotLight.current.shadow.mapSize.width = 1024;
+    // spotLight.current.shadow.mapSize.height = 1024;
     scene.current.add(spotLight.current);
 
     // 카메라
-    camera.current.position.set(100, 100, 230);
+    camera.current.position.set(-50, 100, 230);
     scene.current.add(camera.current);
 
     // 땅바닥
