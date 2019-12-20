@@ -27,7 +27,7 @@ function loadTexture() {
 
 function MayjsGame() {
   const [gameStartState, setGameStartState] = useState(false);
-  const [gameOverState, setgameOverState] = useState(false);
+  const [gameOverState, setGameOverState] = useState(false);
   const [gameWinState, setGameWinState] = useState(false);
 
   const container = useRef<HTMLDivElement | null>(null);
@@ -64,7 +64,7 @@ function MayjsGame() {
   const monster_length = useRef(2);
   const MONSTERSCALE = useRef([0.2, 0.25]);
   const monsterVelocity = useRef([new THREE.Vector3(), new THREE.Vector3()]);
-  const MONSETERSPEED = useRef([300.0, 300.0]);
+  const MONSETERSPEED = useRef([280.0, 280.0]);
   const PLAYERCOLLISIONDISTANCE = useRef(5); // 플레이어 충돌 거리
   const MONSTERCOLLISIONDISTANCE = useRef(CUBEWIDTH.current / 2); // 몬스터 충돌 거리
   const CATCHOFFSET = useRef(CUBEWIDTH.current); // 몬스터와의 거리
@@ -349,6 +349,8 @@ function MayjsGame() {
       // Turn off the controls
     } else {
       if (gameOver.current || gameWin.current) {
+        setGameWinState(false);
+        setGameOverState(false);
         window.location.reload();
       }
       
@@ -520,7 +522,7 @@ function MayjsGame() {
   const caught = useCallback(() => {
     controls.current.enabled = false;
     gameOver.current = true;
-    setgameOverState(true);
+    setGameOverState(true);
   }, []);
 
   const render = useCallback(() => {
