@@ -31,19 +31,19 @@ const NavList = styled.ul`
 
 const NavItem = styled.li`
   display: inline-block;
-  margin: 20px 40px;
+  margin: 15px 40px;
 
   & > a {
     color: white;
     font-size: 20px;
     text-decoration: none;
 
-    @media (max-width: 1200px){
+    @media (max-width: 1220px){
       font-size: 16px;
     }
   }
 
-  @media (max-width: 1050px){
+  @media (max-width: 1070px){
     margin: 20px;
   }
 `;

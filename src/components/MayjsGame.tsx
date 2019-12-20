@@ -594,7 +594,7 @@ const Blocker = styled.div`
   top: 50%;
   transform: translate(-50%, -50%);
   color: white;
-  font-size: 20px;
+  font-size: 16px;
   font-style: italic;
   text-align: center;
 `;
