@@ -231,11 +231,18 @@ const ArrowWrapper = styled.div`
   width: 650px;
   height: 100px;
 
+  @media (max-width: 610px){
+    width: 93%;
+  }
+
   svg {
     width: 100px;
     height: 100%;
     color: black;
     cursor: pointer;
+    @media (max-width: 610px){
+      width: 75px;
+    }
   }
 `;
 
