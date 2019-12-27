@@ -1,6 +1,11 @@
-import React, { memo, useRef, useMemo, useEffect, useCallback } from "react";
-import * as THREE from "three";
-import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader";
+import React, { memo, useRef, useMemo, useEffect, useCallback, useState } from 'react';
+import * as THREE from 'three';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
+import styled from 'styled-components';
+import { FiChevronsLeft, FiChevronsRight } from 'react-icons/fi';
+import debounce from 'lodash/debounce';
+
+type Direction = 'LEFT' | 'RIGHT';
 
 const vertexShader = `
   varying vec3 vWorldPosition;
@@ -28,62 +33,68 @@ const fragmentShader = `
 
 function loadTexture() {
   // Texture
-  const MONSTER_EGGPLANT_01_ALBEDO = new THREE.TextureLoader().load(`${require("../static/assets/textures/monster_eggplant_01_albedo.png")}`);
-  const MONSTER_FRUIT_01_ALBEDO = new THREE.TextureLoader().load(`${require("../static/assets/textures/monster_fruit_01_albedo.png")}`);
-  const MONSTER_FRUIT_02_ALBEDO = new THREE.TextureLoader().load(`${require("../static/assets/textures/monster_fruit_02_albedo.png")}`);
-  const MONSTER_FRUIT_03_ALBEDO = new THREE.TextureLoader().load(`${require("../static/assets/textures/monster_fruit_03_albedo.png")}`);
+  // const ZBRUSH_STICKFIGUR = new THREE.TextureLoader().load(`${require("../static/assets/textures/zbrushstigur_00000.jpg")}`);
 
   return {
-    MONSTER_EGGPLANT_01_ALBEDO,
-    MONSTER_FRUIT_01_ALBEDO,
-    MONSTER_FRUIT_02_ALBEDO,
-    MONSTER_FRUIT_03_ALBEDO
+    // ZBRUSH_STICKFIGUR,
   };
 }
 
 function MayjsCharacter2() {
-  const container = useRef<HTMLDivElement | null>(null);
+  const container = useRef<HTMLDivElement>(null);
   const camera = useRef(new THREE.PerspectiveCamera(30, window.innerWidth / window.innerHeight, 1, 5000));
   const scene = useRef(new THREE.Scene());
   const renderer = useRef(new THREE.WebGLRenderer({ antialias: true }));
   const dirLight = useRef(new THREE.DirectionalLight(0xffffff, 1));
   const hemiLight = useRef(new THREE.HemisphereLight(0xffffff, 0xffffff, 0.6));
 
-  const models = useRef<THREE.Group[]>([]);
-  const raycaster = useRef(new THREE.Raycaster());
-  const mouse = useRef(new THREE.Vector2(1, 1));
-
-  const texture = useRef<ReturnType<typeof loadTexture>>(
-    useMemo(() => loadTexture(), [])
-  );
-
-  const intersects = useRef<THREE.Intersection[]>();
-  const targetModel = useRef<THREE.Object3D | null>();
+  const mainModel = useRef<THREE.Group>();
 
   const requestFrameID = useRef<number>();
+
+  const mixer = useRef<THREE.AnimationMixer>();
+  const clock = useRef(new THREE.Clock());
+
+  const animClipIndex = useRef(0);
 
   useEffect(() => {
     init();
     loadModel();
-    config(); // 부가 설정
     animate();
 
     // 반응형
-    window.addEventListener("resize", handleWindowResize, false);
-    window.addEventListener("mousemove", handleMouseMove, false);
-    window.addEventListener("mousedown", handleMouseDown, false);
+    window.addEventListener('resize', handleWindowResize, false);
 
     return () => {
-      window.removeEventListener("resize", handleWindowResize, false);
-      window.removeEventListener("mousemove", handleMouseMove, false);
-      window.removeEventListener("mousedown", handleMouseDown, false);
-      if (requestFrameID.current)
-        window.cancelAnimationFrame(requestFrameID.current);
+      window.removeEventListener('resize', handleWindowResize, false);
+      if (requestFrameID.current) window.cancelAnimationFrame(requestFrameID.current);
     };
+  }, []);
+  
+  const getAnimClipIndex = useCallback((direction: Direction): number => {
+    const animClipLength: number = (mainModel.current as any).animations.length;
+    
+    if(direction === 'RIGHT' && animClipIndex.current !== animClipLength - 1){
+      animClipIndex.current++;
+    }
+    if(direction === 'LEFT' && animClipIndex.current !== 0){
+      animClipIndex.current--;
+    }
+
+    return animClipIndex.current;
+  }, []);
+
+  const changeAnimClip = useCallback(debounce((direction: Direction): void => {
+    mixer.current?.stopAllAction();
+    const action = mixer.current?.clipAction((mainModel.current as any).animations[getAnimClipIndex(direction)]);
+    action?.play();
+  }, 200), []);
+
+  const onClickArrow = useCallback((direction: Direction) => () => {
+    changeAnimClip(direction);
   }, []);
 
   const init = useCallback(() => {
-
     // RENDERER
     renderer.current.setPixelRatio(window.devicePixelRatio);
     renderer.current.setSize(window.innerWidth, window.innerHeight);
@@ -124,9 +135,9 @@ function MayjsCharacter2() {
     dirLight.current.shadow.bias = -0.0001;
 
     // GROUND
-    const groundGeo = new THREE.PlaneBufferGeometry(10000, 10000);
-    const groundMat = new THREE.MeshLambertMaterial({ color: 0xffffff });
-    groundMat.color.setHSL(0.095, 1, 0.75);
+    const groundGeo = new THREE.PlaneBufferGeometry(5000, 5000);
+    const groundMat = new THREE.MeshLambertMaterial();
+    groundMat.color.setHSL(1, 1, 1);
 
     const ground = new THREE.Mesh(groundGeo, groundMat);
     ground.position.y = -33;
@@ -140,18 +151,18 @@ function MayjsCharacter2() {
       topColor: { value: new THREE.Color(0x0077ff) },
       bottomColor: { value: new THREE.Color(0xffffff) },
       offset: { value: 33 },
-      exponent: { value: 0.6 }
+      exponent: { value: 0.6 },
     };
-    uniforms["topColor"].value.copy(hemiLight.current.color);
+    uniforms['topColor'].value.copy(hemiLight.current.color);
 
-    scene.current.fog.color.copy(uniforms["bottomColor"].value);
+    scene.current.fog.color.copy(uniforms['bottomColor'].value);
 
     const skyGeo = new THREE.SphereBufferGeometry(4000, 32, 15);
     const skyMat = new THREE.ShaderMaterial({
       uniforms: uniforms,
       vertexShader: vertexShader,
       fragmentShader: fragmentShader,
-      side: THREE.BackSide
+      side: THREE.BackSide,
     });
 
     const sky = new THREE.Mesh(skyGeo, skyMat);
@@ -162,85 +173,29 @@ function MayjsCharacter2() {
     // MODEL
     const loader = new FBXLoader();
 
-    // MONSTER_EGGPLANT_01
-    loader.load(`${require('../static/assets/models/monster_eggplant_01.FBX')}`, function (model: THREE.Group) {
-      model.traverse(function(childMesh) {
+    // Pikachu
+    loader.load(`${require('../static/assets/models/Pikachu fbx')}`, function(model: THREE.Group) {
+      mixer.current = new THREE.AnimationMixer(model);
+      const action = mixer.current.clipAction((model as any).animations[animClipIndex.current]);
+      action.play();
+
+      model.traverse(function(childMesh: THREE.Object3D) {
         if (childMesh instanceof THREE.Mesh) {
-          childMesh.material = new THREE.MeshPhongMaterial({
-            map: texture.current.MONSTER_EGGPLANT_01_ALBEDO
-          });
           childMesh.castShadow = true;
           childMesh.receiveShadow = true;
         }
       });
-      model.position.set(-40, -33, 0);
-      model.scale.set(0.25, 0.25, 0.25);
-      models.current.push(model);
+      model.position.set(0, -33, 0);
+      model.scale.set(0.1, 0.1, 0.1);
+      mainModel.current = model;
       scene.current.add(model);
     });
-
-    // MONSTER_FRUIT_01
-    loader.load(`${require('../static/assets/models/monster_fruit_01.FBX')}`, function (model: THREE.Group) {
-      model.traverse(function(childMesh) {
-        if (childMesh instanceof THREE.Mesh) {
-          childMesh.material = new THREE.MeshPhongMaterial({
-            map: texture.current.MONSTER_FRUIT_01_ALBEDO
-          });
-          childMesh.castShadow = true;
-          childMesh.receiveShadow = true;
-        }
-      });
-
-      model.position.set(-5, -33, 0);
-      model.scale.set(0.25, 0.25, 0.25);
-      models.current.push(model);
-      scene.current.add(model);
-    });
-
-    // MONSTER_FRUIT_02
-    loader.load(`${require('../static/assets/models/monster_fruit_02.FBX')}`, function (model: THREE.Group) {
-      model.traverse(function(childMesh) {
-        if (childMesh instanceof THREE.Mesh) {
-          childMesh.material = new THREE.MeshPhongMaterial({
-            map: texture.current.MONSTER_FRUIT_02_ALBEDO
-          });
-          childMesh.castShadow = true;
-          childMesh.receiveShadow = true;
-        }
-      });
-
-      model.position.set(20, -33, 0);
-      model.scale.set(0.25, 0.25, 0.25);
-      models.current.push(model);
-      scene.current.add(model);
-    });
-
-    // MONSTER_FRUIT_03
-    loader.load(`${require('../static/assets/models/monster_fruit_03.FBX')}`, function (model: THREE.Group) {
-      model.traverse(function(childMesh) {
-        if (childMesh instanceof THREE.Mesh) {
-          childMesh.material = new THREE.MeshPhongMaterial({
-            map: texture.current.MONSTER_FRUIT_03_ALBEDO
-          });
-          childMesh.castShadow = true;
-          childMesh.receiveShadow = true;
-        }
-      });
-
-      model.position.set(38, -33, 0);
-      model.scale.set(0.25, 0.25, 0.25);
-      models.current.push(model);
-      scene.current.add(model);
-    });
-  }, []);
-
-  const config = useCallback(() => {
-    // 좌표축 세팅(axes)
-    // const axesHelper = new THREE.AxesHelper(100);
-    // scene.current.add(axesHelper);
   }, []);
 
   const animate = useCallback(() => {
+    const delta = clock.current.getDelta();
+    if (mixer.current) mixer.current.update(delta);
+    
     requestFrameID.current = requestAnimationFrame(animate);
     render();
   }, []);
@@ -255,29 +210,35 @@ function MayjsCharacter2() {
     camera.current.updateProjectionMatrix();
   }, []);
 
-  const handleMouseMove = useCallback((event: MouseEvent) => {
-    event.preventDefault();
-    mouse.current.x = (event.clientX / window.innerWidth) * 2 - 1;
-    mouse.current.y = -(event.clientY / window.innerHeight) * 2 + 1;
-  }, []);
-
-  const handleMouseDown = useCallback((event: MouseEvent) => {
-    event.preventDefault();
-
-    raycaster.current.setFromCamera(mouse.current, camera.current);
-    intersects.current = raycaster.current.intersectObjects(models.current, true);
-    targetModel.current = intersects.current[0] ? intersects.current[0].object.parent : null; // group
-
-    if (targetModel.current) {
-      const changeX = -targetModel.current.position.x;
-
-      for (let i = 0; i < models.current.length; i++) {
-        models.current[i].position.x += changeX;
-      }
-    }
-  }, []);
-
-  return <div ref={container}/>;
+  return (
+    <div ref={container}>
+      <ArrowWrapper>
+        <FiChevronsLeft onClick={onClickArrow('LEFT')} />
+        <FiChevronsRightArrow onClick={onClickArrow('RIGHT')} />
+        <div style={{ clear: 'both' }}></div>
+      </ArrowWrapper>
+    </div>
+  );
 }
 
 export default memo(MayjsCharacter2);
+
+const ArrowWrapper = styled.div`
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 650px;
+  height: 100px;
+
+  svg {
+    width: 100px;
+    height: 100%;
+    color: black;
+    cursor: pointer;
+  }
+`;
+
+const FiChevronsRightArrow = styled(FiChevronsRight)`
+  float: right;
+`;
